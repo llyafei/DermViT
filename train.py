@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 import torch.optim.lr_scheduler as lr_scheduler
 from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
-from bra import Biformer_stl as Create_MyModel
+from DermViT import DermViT_base as Create_MyModel
 # from resnet import resnet101 as Create_MyModel
 # from vit import vit_base_patch16_224 as Create_MyModel
 # from CAT_Net import CAT_Net_normal as Create_MyModel
@@ -242,7 +242,7 @@ def main(args):
 
 if __name__ == '__main__':
     parser: ArgumentParser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default="87-biformer(+CGLU+SPT)(ISIC2019)")
+    parser.add_argument('--model', type=str, default="87-DermViT(+DFG+DCP)(ISIC2019)")
     parser.add_argument('--pretrained', type=bool, default=True)
     parser.add_argument('--num_classes', type=int, default=8)
     parser.add_argument('--image_size', type=int, default=224)
@@ -277,8 +277,8 @@ if __name__ == '__main__':
     parser.add_argument('--train_dir', type=str, default="ISIC2019/ISIC_2019_all_9classes")
     parser.add_argument('--test_dir', type=str, default="ISIC2019/test")
     parser.add_argument('--val_rate', type=float, default=0.15)
-    parser.add_argument("--runs_dir", type=str, default="./runs/87-biformer(+CGLU+SPT)(ISIC2019)")
-    parser.add_argument('--device', default='cuda:2')
+    parser.add_argument("--runs_dir", type=str, default="./runs/87-DermViT(+DFG+DCP)(ISIC2019)")
+    parser.add_argument('--device', default='cuda:1')
     parser.add_argument('--seed', type=int, default=17)
     opt = parser.parse_args()
 
