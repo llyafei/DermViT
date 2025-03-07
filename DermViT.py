@@ -63,7 +63,6 @@ class DermViT(nn.Module):
         self.stages = nn.ModuleList()
         nheads = [dim // head_dim for dim in embed_dim]
 
-        # 所有层的drop_rate列表
         dp_rates = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depth))]
         for i in range(4):
             stage = BasicLayer(
@@ -192,7 +191,6 @@ def DermViT_base(pretrained=False, num_classes=7, drop_path_rate=0., drop_path_r
     if pretrained:
         checkpoint = torch.load("pretrain_weights/biformer_stl_best.pth")
         print("load biformer_stl pretrained weights from {}".format("pretrain_weights/biformer_stl_best.pth"))
-        # 删除不需要的权重,MLP删掉
         del_keys = ['head.weight', 'head.bias']
         for k in del_keys:
             del checkpoint["model"][k]
@@ -202,9 +200,6 @@ def DermViT_base(pretrained=False, num_classes=7, drop_path_rate=0., drop_path_r
 
 if __name__ == '__main__':
     model = DermViT_base(num_classes=7)
-    # state_dict = torch.load("pretrain_weights/biformer_stl_best.pth")
-    # model.load_state_dict(state_dict["model"])
-    # tf = model.get_layers()
     x = torch.rand(1, 3, 224, 224)
     macs, params = profile(model, inputs=(x,))
     macs, flops, params = clever_format([macs, 2 * macs, params], "%.3f")

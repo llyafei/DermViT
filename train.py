@@ -26,18 +26,15 @@ warnings.filterwarnings("ignore")
 
 
 def main(args):
-    # GPU或者CPU设置
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     print("using {} device.".format(device))
-    # 设置随机数种子
     same_seeds(args.seed)
-    torch.backends.cudnn.benchmark = True  # GPU、网络结构固定，可设置为True
-    torch.backends.cudnn.deterministic = True  # 固定网络结构
+    torch.backends.cudnn.benchmark = True
+    torch.backends.cudnn.deterministic = True
     # number of workers
     nw = min([os.cpu_count(), args.batch_size if args.batch_size > 1 else 0, 8])
     print('Using {} dataloader workers every process'.format(nw))
     tb_writer = SummaryWriter(log_dir=args.runs_dir)
-    # 数据增强
     data_transform = {
         "train": transforms.Compose([transforms.RandomResizedCrop(224),
                                      transforms.RandomHorizontalFlip(),
@@ -50,30 +47,29 @@ def main(args):
                                    transforms.ToTensor(),
                                    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])}
 
-    # 获取数据集所在的根目录
     data_root = os.path.abspath(os.path.join(os.getcwd(), "../deep-learning-for-image-processing/data_set"))
     train_dir = os.path.join(data_root, args.train_dir)
     test_dir = os.path.join(data_root, args.test_dir)
     assert os.path.exists(train_dir), "{} path does not exist.".format(train_dir)
 
-    # # 实例化训练数据集
+    # # train dataset
     # train_dataset = ImageFolder(root=train_dir,
     #                             transform=data_transform["train"])
-    # # 实例化验证数据集
+    # # val dataset
     # val_dataset = ImageFolder(root=test_dir,
     #                           transform=data_transform["val"])
     train_images_path, train_images_label, val_images_path, val_images_label = read_split_data(train_dir, val_rate=0.15)
 
-    # 实例化训练数据集
+    # train dataset
     train_dataset = MyDataSet(images_path=train_images_path,
                               images_class=train_images_label,
                               transform=data_transform["train"])
-    # 实例化验证数据集
+    # val dataset
     val_dataset = MyDataSet(images_path=val_images_path,
                             images_class=val_images_label,
                             transform=data_transform["val"])
 
-    # 训练加载器
+    # training loader
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                batch_size=args.batch_size,
                                                shuffle=True,
@@ -86,17 +82,17 @@ def main(args):
                                              pin_memory=True,
                                              num_workers=nw)
 
-    # 创建模型实例并加载已训练的权重
+    # model
     model = Create_MyModel(num_classes=args.num_classes, drop_path_rate=args.drop_path_rate_bra,
                            drop_path_rate_CGLU=args.drop_path_rate_CGLU)
     # model = Create_MyModel(num_classes=args.num_classes)
     # pretrained=args.pretrained
 
-    # 计算FLOPs 和 MACs
+    # FLOPs and MACs
     print(args.model + ":")
     calculate_flops(model, x=torch.randn(1, 3, args.image_size, args.image_size), print_table=True)
 
-    # 优化器
+    # optimizer
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = None
     scheduler = None
@@ -109,12 +105,11 @@ def main(args):
     elif args.optim == "AdamW":
         # optimizer = optim.AdamW(params, lr=args.lr, weight_decay=args.weight_decay)
         optimizer = optim.AdamW([{'params': params, 'initial_lr': args.lr}], lr=args.lr, weight_decay=args.weight_decay)
-    # 学习率递减策略
+    # scheduler
     if args.scheduler == "LambdaLR":
-        # 学习率递减函数，接收当前epoch作为参数，每一轮的新学习率等于上一轮学习率乘以该函数：new_lr=lr×lambda_function(epoch)
+        # new_lr=lr×lambda_function(epoch)
         lf_func = lambda epoch: ((1 + math.cos(epoch * math.pi / args.epochs)) / 2) * (1 - args.lrf) + args.lrf
         # lf_func = lambda epoch:0.1 if epoch % 50 == 0 else 1.0
-        # 将该学习率递减函数作为参数传入学习率优化器
         scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf_func, last_epoch=args.last_epoch)
         # scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1, last_epoch=args.last_epoch, verbose=True)
     if args.scheduler == "WarmUp":
@@ -125,26 +120,24 @@ def main(args):
                                               warmup_epochs=10,
                                               warmup_factor=1e-3,
                                               end_factor=args.lrf)
-    # 是否从checkpoint重新训练
+    # checkpoint
     if args.load_from_checkpoint and len(args.checkpoint_dir) > 0:
         checkpoint = torch.load("checkpoint/" + args.checkpoint_dir)
         print("load checkpoint from {}".format("checkpoint/" + args.checkpoint_dir))
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         args.last_epoch = checkpoint['epoch']
-        # optimizer加载参数时，tensor默认在CPU上，当使用GPU训练时会报错误,需要将将optimizer里的tensor数据全部转到GPU上
         for state in optimizer.state.values():
             for k, v in state.items():
                 if torch.is_tensor(v):
                     state[k] = v.to(device)
     model.to(device)
 
-    # 是否冻结权重
     for name, para in model.named_parameters():
         if para.requires_grad:
             print("training {}".format(name))
 
-    # 将命令行参数写入 TensorBoard
+    # TensorBoard
     tb_writer.add_text("super_paras", str(args))
     tb_writer.add_graph(model, torch.randn(1, 3, args.image_size, args.image_size).to(device))
 
@@ -242,7 +235,7 @@ def main(args):
 
 if __name__ == '__main__':
     parser: ArgumentParser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default="87-DermViT(+DFG+DCP)(ISIC2019)")
+    parser.add_argument('--model', type=str, default="DermViT(+DFG+DCP)(ISIC2019)")
     parser.add_argument('--pretrained', type=bool, default=True)
     parser.add_argument('--num_classes', type=int, default=8)
     parser.add_argument('--image_size', type=int, default=224)
@@ -250,8 +243,6 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--batch-size', type=int, default=32)
 
-    # α代表了样本数量较少的类的权重，也就是绝大多数情况下的正样本
-    # α和γ gamma是相互作用的，随着gamma的增加，α应该稍微降低。
     parser.add_argument('--FL_alpha', type=float, default=1)
     parser.add_argument('--FL_gamma', type=int, default=2)
     parser.add_argument('--threshold', type=float, default=0.8)
@@ -271,13 +262,13 @@ if __name__ == '__main__':
 
     parser.add_argument('--load_from_checkpoint', default=False)
     parser.add_argument('--checkpoint_dir', type=str,
-                        default='')  # 如果不要从记录点开始,该变量为空字符串
-    parser.add_argument('--last_epoch', type=int, default=-1)  # 如果不要从记录点开始，last_epoch=-1
+                        default='')
+    parser.add_argument('--last_epoch', type=int, default=-1)
 
     parser.add_argument('--train_dir', type=str, default="ISIC2019/ISIC_2019_all_9classes")
     parser.add_argument('--test_dir', type=str, default="ISIC2019/test")
     parser.add_argument('--val_rate', type=float, default=0.15)
-    parser.add_argument("--runs_dir", type=str, default="./runs/87-DermViT(+DFG+DCP)(ISIC2019)")
+    parser.add_argument("--runs_dir", type=str, default="./runs/DermViT(+DFG+DCP)(ISIC2019)")
     parser.add_argument('--device', default='cuda:1')
     parser.add_argument('--seed', type=int, default=17)
     opt = parser.parse_args()
