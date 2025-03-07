@@ -415,7 +415,7 @@ def get_metrics(y_true, y_pred, y_probs, average_way):
     PREC = dict()
     RECALL = dict()
     F1SCORE = dict()
-    # LABELS -> 为one-hot
+    # LABELS -> one-hot
     AUC['macro'] = roc_auc_score(LABELS, PROBS, multi_class='ovr', average='macro')
     AUC['micro'] = roc_auc_score(LABELS, PROBS, multi_class='ovo')
     # precision

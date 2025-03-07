@@ -214,9 +214,9 @@ class PSPModule(nn.Module):
         return prior
 
     def forward(self, feats):
-        # 输入 n,hw,c 输出 n,new_hw,c
+        # input: n,hw,c output: n,new_hw,c
         n, hw, c = feats.size()
-        # 特征图reshape为 n c h w
+        # reshape -> n c h w
         feats = feats.transpose(1, 2).view(n, c, int(np.sqrt(hw)), int(np.sqrt(hw)))
         # list,reshape-> n hw c
         # priors : -> [(n,hw1,c),(n,hw2,c),(n,hw3,c)]

@@ -75,7 +75,7 @@ def main(args):
                                                shuffle=True,
                                                pin_memory=True,
                                                num_workers=nw)
-    # 验证加载器
+    # val loader
     val_loader = torch.utils.data.DataLoader(val_dataset,
                                              batch_size=args.batch_size,
                                              shuffle=True,

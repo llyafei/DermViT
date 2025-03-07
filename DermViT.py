@@ -189,8 +189,8 @@ def DermViT_base(pretrained=False, num_classes=7, drop_path_rate=0., drop_path_r
                     representation_size=768,
                     **kwargs)
     if pretrained:
-        checkpoint = torch.load("pretrain_weights/biformer_stl_best.pth")
-        print("load biformer_stl pretrained weights from {}".format("pretrain_weights/biformer_stl_best.pth"))
+        checkpoint = torch.load("pretrain_weights/DermViT_base_best.pth")
+        print("load biformer_stl pretrained weights from {}".format("pretrain_weights/DermViT_base_best.pth"))
         del_keys = ['head.weight', 'head.bias']
         for k in del_keys:
             del checkpoint["model"][k]

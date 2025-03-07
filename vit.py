@@ -535,8 +535,6 @@ if __name__ == '__main__':
     # model.load_state_dict(state_dict["model"])
     # tf = model.get_layers()
     x = torch.rand(1, 3, 224, 224)
-    # 计算参数量和FLOPs，FLOPs=2MACs
-    # MACs表示在一次操作中执行一次乘法和一次加法
     macs, params = profile(model, inputs=(x,))
     macs, flops, params = clever_format([macs, 2 * macs, params], "%.3f")
     table = PrettyTable()
